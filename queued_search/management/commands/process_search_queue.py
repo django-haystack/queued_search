@@ -193,11 +193,24 @@ class Command(NoArgsCommand):
         
         Deletes are grouped by model class for maximum batching.
         """
+        deletes = {}
         previous_path = None
         current_index = None
         
         for obj_identifier in self.actions['delete']:
             (object_path, pk) = self.split_obj_identifier(obj_identifier)
+            
+            if object_path is None or pk is None:
+                self.log.error("Skipping.")
+                continue
+            
+            if object_path not in deletes:
+                deletes[object_path] = []
+            
+            deletes[object_path].append(pk)
+        
+        # We've got all deletes grouped. Process them.
+        for object_path in deletes:
             model_class = self.get_model_class(object_path)
             
             if object_path != previous_path:
