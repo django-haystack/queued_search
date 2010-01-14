@@ -1,5 +1,6 @@
 from queues import queues
 from django.conf import settings
+from django.db.models import signals
 from haystack import indexes
 from haystack.utils import get_identifier
 from queued_search import get_queue_name
@@ -31,7 +32,7 @@ class QueuedSearchIndex(indexes.SearchIndex):
         signals.post_delete.disconnect(self.enqueue_delete, sender=model)
     
     def enqueue_save(self, instance, **kwargs):
-        return self.enqueue('save', instance)
+        return self.enqueue('update', instance)
     
     def enqueue_delete(self, instance, **kwargs):
         return self.enqueue('delete', instance)
