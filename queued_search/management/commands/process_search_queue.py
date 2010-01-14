@@ -41,7 +41,8 @@ class Command(NoArgsCommand):
         
         self.log.info("Starting to process the queue.")
         
-        # Consume the whole queue first.
+        # Consume the whole queue first so that we can group update/deletes
+        # for efficiency.
         try:
             while True:
                 message = self.queue.read()
@@ -56,6 +57,10 @@ class Command(NoArgsCommand):
         self.log.info("Processing complete.")
     
     def process_message(self, message):
+        """
+        Given a message added by the ``QueuedSearchIndex``, add it to either
+        the updates or deletes for processing.
+        """
         self.log.debug("Processing message '%s'..." % message)
         
         if not ':' in message:
@@ -89,6 +94,11 @@ class Command(NoArgsCommand):
             self.log.error("Unrecognized action '%s'. Moving on..." % action)
     
     def split_obj_identifier(self, obj_identifier):
+        """
+        Break down the identifier representing the instance.
+        
+        Converts 'notes.note.23' into ('notes.note', 23).
+        """
         bits = obj_identifier.split('.')
         
         if len(bits) > 2:
@@ -96,10 +106,12 @@ class Command(NoArgsCommand):
             return (None, None)
         
         pk = bits[-1]
+        # In case Django ever handles full paths...
         object_path = '.'.join(bits[:-1])
         return (object_path, pk)
     
     def get_model_class(self, object_path):
+        """Fetch the model's class in a standarized way."""
         model_class = get_model(object_path)
         
         if model_class is None:
@@ -109,6 +121,7 @@ class Command(NoArgsCommand):
         return model_class
     
     def get_instance(self, model_class, pk):
+        """Fetch the instance in a standarized way."""
         try:
             instance = model_class.objects.get(pk=pk)
         except ObjectDoesNotExist:
@@ -121,6 +134,7 @@ class Command(NoArgsCommand):
         return instance
     
     def get_index(self, model_class):
+        """Fetch the model's registered ``SearchIndex`` in a standarized way."""
         try:
             return site.get_index(model_class)
         except NotRegistered:
@@ -128,7 +142,13 @@ class Command(NoArgsCommand):
             return None
     
     def handle_updates(self):
-        # For grouping same types for efficiency.
+        """
+        Process through all updates.
+        
+        Updates are grouped by model class for maximum batching/minimized
+        merging.
+        """
+        # For grouping same model classes for efficiency.
         updates = {}
         previous_path = None
         current_index = None
@@ -145,6 +165,7 @@ class Command(NoArgsCommand):
             
             updates[object_path].append(pk)
         
+        # We've got all updates grouped. Process them.
         for object_path in updates:
             model_class = self.get_model_class(object_path)
             
@@ -167,6 +188,11 @@ class Command(NoArgsCommand):
             current_index.backend.update(instances)
     
     def handle_deletes(self):
+        """
+        Process through all deletes.
+        
+        Deletes are grouped by model class for maximum batching.
+        """
         previous_path = None
         current_index = None
         
