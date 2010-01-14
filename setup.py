@@ -3,12 +3,12 @@
 from distutils.core import setup
 
 setup(
-    name='django-queued_search',
+    name='queued_search',
     version='1.0.0',
     description='A queuing setup for integration with Haystack.',
     author='Daniel Lindsley',
     author_email='daniel@toastdriven.com',
-    url='http://github.com/toastdriven/django-queued_search',
+    url='http://github.com/toastdriven/queued_search',
     packages=[
         'queued_search',
         'haystack.management',
