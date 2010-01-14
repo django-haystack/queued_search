@@ -1,2 +1,5 @@
 .DS_Store
 *.pyc
+tests/whoosh_index
+tests/haystack
+tests/queues
