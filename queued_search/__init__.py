@@ -10,4 +10,4 @@ def get_queue_name():
     Given that the queue name is used in disparate places, this is primarily
     for sanity.
     """
-    return getattr(settings, 'SEARCH_QUEUE_NAME', 'haystack_search_queue'):
+    return getattr(settings, 'SEARCH_QUEUE_NAME', 'haystack_search_queue')
