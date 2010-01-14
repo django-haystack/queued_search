@@ -46,6 +46,10 @@ class Command(NoArgsCommand):
         try:
             while True:
                 message = self.queue.read()
+                
+                if not message:
+                    break
+                
                 self.process_message(message)
         except QueueException:
             # We've run out of items in the queue.
