@@ -101,7 +101,7 @@ class Command(NoArgsCommand):
         """
         bits = obj_identifier.split('.')
         
-        if len(bits) > 2:
+        if len(bits) < 2:
             self.log.error("Unable to parse object identifer '%s'. Moving on..." % obj_identifier)
             return (None, None)
         
@@ -112,7 +112,10 @@ class Command(NoArgsCommand):
     
     def get_model_class(self, object_path):
         """Fetch the model's class in a standarized way."""
-        model_class = get_model(object_path)
+        bits = object_path.split('.')
+        app_name = '.'.join(bits[:-1])
+        classname = bits[-1]
+        model_class = get_model(app_name, classname)
         
         if model_class is None:
             self.log.error("Could not load model from '%s'. Moving on..." % object_path)
@@ -166,7 +169,7 @@ class Command(NoArgsCommand):
             updates[object_path].append(pk)
         
         # We've got all updates grouped. Process them.
-        for object_path in updates:
+        for object_path, pks in updates.items():
             model_class = self.get_model_class(object_path)
             
             if object_path != previous_path:
@@ -177,7 +180,7 @@ class Command(NoArgsCommand):
                 self.log.error("Skipping.")
                 continue
             
-            instances = [self.get_instance(model_class, pk) for pk in object_path]
+            instances = [self.get_instance(model_class, pk) for pk in pks]
             
             # Filter out what we didn't find.
             instances = [instance for instance in instances if instance is not None]
@@ -185,7 +188,8 @@ class Command(NoArgsCommand):
             # Update the batch of instances for this class.
             # Use the backend instead of the index because we can batch the
             # instances.
-            current_index.backend.update(instances)
+            current_index.backend.update(current_index, instances)
+            self.log.debug("Updated objects for '%s': %s" % (object_path, ", ".join(pks)))
     
     def handle_deletes(self):
         """
@@ -207,10 +211,10 @@ class Command(NoArgsCommand):
             if object_path not in deletes:
                 deletes[object_path] = []
             
-            deletes[object_path].append(pk)
+            deletes[object_path].append(obj_identifier)
         
         # We've got all deletes grouped. Process them.
-        for object_path in deletes:
+        for object_path, obj_identifiers in deletes.items():
             model_class = self.get_model_class(object_path)
             
             if object_path != previous_path:
@@ -221,10 +225,10 @@ class Command(NoArgsCommand):
                 self.log.error("Skipping.")
                 continue
             
-            instance = self.get_instance(model_class, pk)
+            pks = []
             
-            if not instance:
-                self.log.error("Skipping.")
-                continue
+            for obj_identifier in obj_identifiers:
+                current_index.remove_object(obj_identifier)
+                pks.append(self.split_obj_identifier(obj_identifier)[1])
             
-            current_index.remove_object(instance)
+            self.log.debug("Deleted objects for '%s': %s" % (object_path, ", ".join(pks)))
