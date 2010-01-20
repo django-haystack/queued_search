@@ -2,7 +2,7 @@ from django.conf import settings
 
 
 __author__ = 'Daniel Lindsley'
-__version__ = (1, 0, 1)
+__version__ = (1, 0, 2)
 
 
 def get_queue_name():

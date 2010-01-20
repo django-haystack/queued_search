@@ -4,15 +4,15 @@ from distutils.core import setup
 
 setup(
     name='queued_search',
-    version='1.0.1',
+    version='1.0.2',
     description='A queuing setup for integration with Haystack.',
     author='Daniel Lindsley',
     author_email='daniel@toastdriven.com',
     url='http://github.com/toastdriven/queued_search',
     packages=[
         'queued_search',
-        'haystack.management',
-        'haystack.management.commands',
+        'queued_search.management',
+        'queued_search.management.commands',
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
