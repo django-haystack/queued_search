@@ -285,3 +285,131 @@ class ProcessSearchQueueTestCase(TestCase):
             'Processing complete.'
         ])
         self.assertEqual(SearchQuerySet().all().count(), 1)
+    
+    def test_requeuing(self):
+        self.assertEqual(len(self.queue), 0)
+        
+        note1 = Note.objects.create(
+            title='A test note',
+            content='Because everyone loves test data.',
+            author='Daniel'
+        )
+        
+        self.assertEqual(len(self.queue), 1)
+        
+        # Write a failed message.
+        self.queue.write('update:notes.note.abc')
+        self.assertEqual(len(self.queue), 2)
+        
+        self.assertEqual(AssertableHandler.stowed_messages, [])
+        
+        try:
+            # Call the command, which will fail.
+            call_command('process_search_queue')
+            self.fail("The command ran successfully, which is incorrect behavior in this case.")
+        except:
+            # We don't care that it failed. We just want to examine the state
+            # of things afterward.
+            pass
+        
+        self.assertEqual(len(self.queue), 2)
+        
+        # Pull the whole queue.
+        messages = []
+        
+        try:
+            while True:
+                messages.append(self.queue.read())
+        except QueueException:
+            # We're out of queued bits.
+            pass
+        
+        self.assertEqual(messages, [u'update:notes.note.1', 'update:notes.note.abc'])
+        self.assertEqual(len(self.queue), 0)
+        
+        self.assertEqual(AssertableHandler.stowed_messages, [
+            'Starting to process the queue.',
+            u"Processing message 'update:notes.note.1'...",
+            u"Saw 'update' on 'notes.note.1'...",
+            u"Added 'notes.note.1' to the update list.",
+            "Processing message 'update:notes.note.abc'...",
+            "Saw 'update' on 'notes.note.abc'...",
+            "Added 'notes.note.abc' to the update list.",
+            'Queue consumed.',
+            "Exception seen during processing: invalid literal for int() with base 10: 'abc'",
+            'Requeuing unprocessed messages.',
+            'Requeued 2 updates and 0 deletes.'
+        ])
+        
+        # Start over.
+        note1 = Note.objects.create(
+            title='A test note',
+            content='Because everyone loves test data.',
+            author='Daniel'
+        )
+        
+        self.assertEqual(len(self.queue), 1)
+        
+        note2 = Note.objects.create(
+            title='Another test note',
+            content='Because everyone loves test data.',
+            author='Daniel'
+        )
+        
+        self.assertEqual(len(self.queue), 2)
+        
+        # Now delete it.
+        note2.delete()
+        
+        # Write a failed message.
+        self.queue.write('delete:notes.note.abc')
+        self.assertEqual(len(self.queue), 4)
+        
+        AssertableHandler.stowed_messages = []
+        self.assertEqual(AssertableHandler.stowed_messages, [])
+        
+        try:
+            # Call the command, which will fail again.
+            call_command('process_search_queue')
+            self.fail("The command ran successfully, which is incorrect behavior in this case.")
+        except:
+            # We don't care that it failed. We just want to examine the state
+            # of things afterward.
+            pass
+        
+        # Everything but the bad bit of data should have processed.
+        self.assertEqual(len(self.queue), 1)
+        
+        # Pull the whole queue.
+        messages = []
+        
+        try:
+            while True:
+                messages.append(self.queue.read())
+        except QueueException:
+            # We're out of queued bits.
+            pass
+        
+        self.assertEqual(messages, ['delete:notes.note.abc'])
+        self.assertEqual(len(self.queue), 0)
+        
+        self.assertEqual(AssertableHandler.stowed_messages, [
+            'Starting to process the queue.',
+            u"Processing message 'update:notes.note.2'...",
+            u"Saw 'update' on 'notes.note.2'...",
+            u"Added 'notes.note.2' to the update list.",
+            u"Processing message 'update:notes.note.3'...",
+            u"Saw 'update' on 'notes.note.3'...",
+            u"Added 'notes.note.3' to the update list.",
+            u"Processing message 'delete:notes.note.3'...",
+            u"Saw 'delete' on 'notes.note.3'...",
+            u"Added 'notes.note.3' to the delete list.",
+            "Processing message 'delete:notes.note.abc'...",
+            "Saw 'delete' on 'notes.note.abc'...",
+            "Added 'notes.note.abc' to the delete list.",
+            'Queue consumed.',
+            u"Updated objects for 'notes.note': 2",
+            "Exception seen during processing: Provided string 'notes.note.abc' is not a valid identifier.",
+            'Requeuing unprocessed messages.',
+            'Requeued 0 updates and 1 deletes.'
+        ])

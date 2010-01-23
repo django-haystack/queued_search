@@ -30,6 +30,8 @@ class Command(NoArgsCommand):
             'update': set(),
             'delete': set(),
         }
+        self.processed_updates = set()
+        self.processed_deletes = set()
     
     def handle_noargs(self, **options):
         # Setup the queue.
@@ -56,9 +58,36 @@ class Command(NoArgsCommand):
             pass
         
         self.log.info("Queue consumed.")
-        self.handle_updates()
-        self.handle_deletes()
+        
+        try:
+            self.handle_updates()
+            self.handle_deletes()
+        except Exception, e:
+            self.log.error('Exception seen during processing: %s' % e)
+            self.requeue()
+            raise e
+        
         self.log.info("Processing complete.")
+    
+    def requeue(self):
+        """
+        On failure, requeue all unprocessed messages.
+        """
+        self.log.error('Requeuing unprocessed messages.')
+        update_count = 0
+        delete_count = 0
+        
+        for update in self.actions['update']:
+            if not update in self.processed_updates:
+                self.queue.write('update:%s' % update)
+                update_count += 1
+        
+        for delete in self.actions['delete']:
+            if not delete in self.processed_deletes:
+                self.queue.write('delete:%s' % delete)
+                delete_count += 1
+        
+        self.log.error('Requeued %d updates and %d deletes.' % (update_count, delete_count))
     
     def process_message(self, message):
         """
@@ -194,6 +223,9 @@ class Command(NoArgsCommand):
             # instances.
             current_index.backend.update(current_index, instances)
             self.log.debug("Updated objects for '%s': %s" % (object_path, ", ".join(pks)))
+            
+            for updated in instances:
+                self.processed_updates.add("%s.%s" % (object_path, updated.pk))
     
     def handle_deletes(self):
         """
@@ -234,5 +266,6 @@ class Command(NoArgsCommand):
             for obj_identifier in obj_identifiers:
                 current_index.remove_object(obj_identifier)
                 pks.append(self.split_obj_identifier(obj_identifier)[1])
+                self.processed_deletes.add(obj_identifier)
             
             self.log.debug("Deleted objects for '%s': %s" % (object_path, ", ".join(pks)))
