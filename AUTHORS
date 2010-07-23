@@ -7,4 +7,4 @@ Primary:
 Contributors:
 =============
 
-None.
+* Sébastien Fievet (zyegfryed) for adding batching to the ``process_search_queue`` command.

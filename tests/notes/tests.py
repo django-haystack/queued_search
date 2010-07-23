@@ -280,6 +280,8 @@ class ProcessSearchQueueTestCase(TestCase):
             u"Saw 'delete' on 'notes.note.3'...",
             u"Added 'notes.note.3' to the delete list.",
             'Queue consumed.',
+            u'Indexing 1 notes.note.',
+            '  indexing 1 - 1 of 1.',
             u"Updated objects for 'notes.note': 2",
             u"Deleted objects for 'notes.note': 1, 3",
             'Processing complete.'
@@ -408,6 +410,8 @@ class ProcessSearchQueueTestCase(TestCase):
             "Saw 'delete' on 'notes.note.abc'...",
             "Added 'notes.note.abc' to the delete list.",
             'Queue consumed.',
+            u'Indexing 1 notes.note.',
+            '  indexing 1 - 1 of 1.',
             u"Updated objects for 'notes.note': 2",
             "Exception seen during processing: Provided string 'notes.note.abc' is not a valid identifier.",
             'Requeuing unprocessed messages.',

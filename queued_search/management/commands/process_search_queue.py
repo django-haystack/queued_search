@@ -1,4 +1,5 @@
 import logging
+from optparse import make_option
 from queues import queues, QueueException
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
@@ -13,6 +14,7 @@ except ImportError:
     from sets import Set as set
 
 
+DEFAULT_BATCH_SIZE = getattr(settings, 'HAYSTACK_BATCH_SIZE', 1000)
 LOG_LEVEL = getattr(settings, 'SEARCH_QUEUE_LOG_LEVEL', logging.ERROR)
 
 logging.basicConfig(
@@ -22,6 +24,13 @@ logging.basicConfig(
 class Command(NoArgsCommand):
     help = "Consume any objects that have been queued for modification in search."
     can_import_settings = True
+    base_options = (
+        make_option('-b', '--batch-size', action='store', dest='batchsize',
+            default=DEFAULT_BATCH_SIZE, type='int',
+            help='Number of items to index at once.'
+        ),
+    )
+    option_list = NoArgsCommand.option_list + base_options
     
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
@@ -34,6 +43,7 @@ class Command(NoArgsCommand):
         self.processed_deletes = set()
     
     def handle_noargs(self, **options):
+        self.batchsize = options.get('batchsize', DEFAULT_BATCH_SIZE)
         # Setup the queue.
         self.queue = queues.Queue(get_queue_name())
         
@@ -221,11 +231,19 @@ class Command(NoArgsCommand):
             # Update the batch of instances for this class.
             # Use the backend instead of the index because we can batch the
             # instances.
-            current_index.backend.update(current_index, instances)
-            self.log.debug("Updated objects for '%s': %s" % (object_path, ", ".join(pks)))
+            total = len(instances)
+            self.log.debug("Indexing %d %s." % (total, object_path))
+            for start in range(0, total, self.batchsize):
+                end = min(start + self.batchsize, total)
+                batch_instances = instances[start:end]
+                
+                self.log.debug("  indexing %s - %d of %d." % (start+1, end, total))
+                current_index.backend.update(current_index, batch_instances)
+                
+                for updated in batch_instances:
+                    self.processed_updates.add("%s.%s" % (object_path, updated.pk))
             
-            for updated in instances:
-                self.processed_updates.add("%s.%s" % (object_path, updated.pk))
+            self.log.debug("Updated objects for '%s': %s" % (object_path, ", ".join(pks)))
     
     def handle_deletes(self):
         """
