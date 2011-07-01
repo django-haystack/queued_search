@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='queued_search',
-    version='1.0.3',
+    version='1.0.4',
     description='A queuing setup for integration with Haystack.',
     author='Daniel Lindsley',
     author_email='daniel@toastdriven.com',
