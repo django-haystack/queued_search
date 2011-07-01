@@ -2,7 +2,7 @@ import logging
 from queues import queues, QueueException
 from django.core.management import call_command
 from django.test import TestCase
-from haystack import backend, site
+from haystack import connections
 from haystack.query import SearchQuerySet
 from queued_search import get_queue_name
 from queued_search.management.commands.process_search_queue import Command as ProcessSearchQueueCommand
@@ -28,8 +28,7 @@ class QueuedSearchIndexTestCase(TestCase):
         queues.delete_queue(get_queue_name())
         
         # Nuke the index.
-        back = backend.SearchBackend()
-        back.clear()
+        call_command('clear_index', interactive=False, verbosity=0)
         
         # Get a queue connection so we can poke at it.
         self.queue = queues.Queue(get_queue_name())
@@ -178,8 +177,7 @@ class ProcessSearchQueueTestCase(TestCase):
         queues.delete_queue(get_queue_name())
         
         # Nuke the index.
-        back = backend.SearchBackend()
-        back.clear()
+        call_command('clear_index', interactive=False, verbosity=0)
         
         # Get a queue connection so we can poke at it.
         self.queue = queues.Queue(get_queue_name())

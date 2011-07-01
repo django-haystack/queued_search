@@ -5,8 +5,9 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.management.base import NoArgsCommand
 from django.db.models.loading import get_model
-from haystack import site
-from haystack.exceptions import NotRegistered
+from haystack import connections
+from haystack.constants import DEFAULT_ALIAS
+from haystack.exceptions import NotHandled
 from queued_search import get_queue_name
 try:
     set
@@ -14,7 +15,7 @@ except ImportError:
     from sets import Set as set
 
 
-DEFAULT_BATCH_SIZE = getattr(settings, 'HAYSTACK_BATCH_SIZE', 1000)
+DEFAULT_BATCH_SIZE = None
 LOG_LEVEL = getattr(settings, 'SEARCH_QUEUE_LOG_LEVEL', logging.ERROR)
 
 logging.basicConfig(
@@ -26,8 +27,11 @@ class Command(NoArgsCommand):
     can_import_settings = True
     base_options = (
         make_option('-b', '--batch-size', action='store', dest='batchsize',
-            default=DEFAULT_BATCH_SIZE, type='int',
+            default=None, type='int',
             help='Number of items to index at once.'
+        ),
+        make_option("-u", "--using", action="store", type="string", dest="using", default=DEFAULT_ALIAS,
+            help='If provided, chooses a connection to work with.'
         ),
     )
     option_list = NoArgsCommand.option_list + base_options
@@ -43,7 +47,8 @@ class Command(NoArgsCommand):
         self.processed_deletes = set()
     
     def handle_noargs(self, **options):
-        self.batchsize = options.get('batchsize', DEFAULT_BATCH_SIZE)
+        self.batchsize = options.get('batchsize', DEFAULT_BATCH_SIZE) or 1000
+        self.using = options.get('using')
         # Setup the queue.
         self.queue = queues.Queue(get_queue_name())
         
@@ -182,9 +187,9 @@ class Command(NoArgsCommand):
     def get_index(self, model_class):
         """Fetch the model's registered ``SearchIndex`` in a standarized way."""
         try:
-            return site.get_index(model_class)
-        except NotRegistered:
-            self.log.error("Couldn't find a registered SearchIndex for %s." % model_class)
+            return connections['default'].get_unified_index().get_index(model_class)
+        except NotHandled:
+            self.log.error("Couldn't find a SearchIndex for %s." % model_class)
             return None
     
     def handle_updates(self):
@@ -233,12 +238,13 @@ class Command(NoArgsCommand):
             # instances.
             total = len(instances)
             self.log.debug("Indexing %d %s." % (total, object_path))
+            
             for start in range(0, total, self.batchsize):
                 end = min(start + self.batchsize, total)
                 batch_instances = instances[start:end]
                 
                 self.log.debug("  indexing %s - %d of %d." % (start+1, end, total))
-                current_index.backend.update(current_index, batch_instances)
+                current_index._get_backend(self.using).update(current_index, batch_instances)
                 
                 for updated in batch_instances:
                     self.processed_updates.add("%s.%s" % (object_path, updated.pk))
@@ -282,7 +288,7 @@ class Command(NoArgsCommand):
             pks = []
             
             for obj_identifier in obj_identifiers:
-                current_index.remove_object(obj_identifier)
+                current_index.remove_object(obj_identifier, using=self.using)
                 pks.append(self.split_obj_identifier(obj_identifier)[1])
                 self.processed_deletes.add(obj_identifier)
             
