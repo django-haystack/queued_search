@@ -1,7 +1,11 @@
 import os
 
-DATABASE_ENGINE = 'sqlite3'
-DATABASE_NAME = 'notes.db'
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'notes.db'
+    }
+}
 
 INSTALLED_APPS = [
     'haystack',
@@ -15,6 +19,7 @@ HAYSTACK_CONNECTIONS = {
         'PATH': os.path.join(os.path.dirname(__file__), 'whoosh_index')
     }
 }
+HAYSTACK_SIGNAL_PROCESSOR = 'queued_search.signals.QueuedSignalProcessor'
 
 QUEUE_BACKEND = 'dummy'
 

@@ -1,0 +1,8 @@
+setup.py
+queued_search/__init__.py
+queued_search/models.py
+queued_search/signals.py
+queued_search/utils.py
+queued_search/management/__init__.py
+queued_search/management/commands/__init__.py
+queued_search/management/commands/process_search_queue.py

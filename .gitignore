@@ -3,3 +3,5 @@
 tests/whoosh_index
 tests/haystack
 tests/queues
+env
+dist
