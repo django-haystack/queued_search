@@ -73,7 +73,7 @@ class Command(NoArgsCommand):
         try:
             self.handle_updates()
             self.handle_deletes()
-        except Exception, e:
+        except Exception as e:
             self.log.error('Exception seen during processing: %s' % e)
             self.requeue()
             raise e
