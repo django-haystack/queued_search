@@ -13,7 +13,7 @@ settings.configure(
     INSTALLED_APPS=[
         'haystack',
         'queued_search',
-        'notes',
+        'tests',
     ],
     HAYSTACK_CONNECTIONS={
         'default': {
@@ -32,7 +32,7 @@ def runtests(*test_args):
 
     runner_class = django.test.utils.get_runner(settings)
     test_runner = runner_class(verbosity=1, interactive=True, failfast=False)
-    failures = test_runner.run_tests(['notes'])
+    failures = test_runner.run_tests(['tests'])
     sys.exit(failures)
 
 

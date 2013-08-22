@@ -1,5 +1,5 @@
 from haystack import indexes
-from notes.models import Note
+from .models import Note
 
 
 # Simplest possible subclass that could work.
