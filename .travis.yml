@@ -1,0 +1,23 @@
+language: python
+
+python:
+  - "2.6"
+  - "2.7"
+
+env:
+  - DJANGO=https://github.com/django/django/archive/master.tar.gz
+  - DJANGO=https://github.com/django/django/archive/stable/1.6.x.tar.gz
+  - DJANGO=django>=1.5,<1.6
+  - DJANGO=django>=1.4,<1.5
+
+install:
+  - pip install $DJANGO
+  - pip install -r tests/requirements.txt --use-mirrors
+
+script:
+  - python tests/runtests.py
+
+matrix:
+  exclude:
+    - python: "2.6"
+      env: DJANGO=https://github.com/django/django/archive/master.tar.gz
