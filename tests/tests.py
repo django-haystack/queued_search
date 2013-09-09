@@ -6,7 +6,7 @@ from haystack import connections
 from haystack.query import SearchQuerySet
 from queued_search.management.commands.process_search_queue import Command as ProcessSearchQueueCommand
 from queued_search.utils import get_queue_name
-from notes.models import Note
+from .models import Note
 
 
 class AssertableHandler(logging.Handler):
@@ -75,7 +75,7 @@ class QueuedSearchIndexTestCase(TestCase):
             # We're out of queued bits.
             pass
 
-        self.assertEqual(messages, [u'update:notes.note.1', u'update:notes.note.2', u'update:notes.note.3', u'update:notes.note.3'])
+        self.assertEqual(messages, [u'update:tests.note.1', u'update:tests.note.2', u'update:tests.note.3', u'update:tests.note.3'])
 
     def test_delete(self):
         note1 = Note.objects.create(
@@ -116,7 +116,7 @@ class QueuedSearchIndexTestCase(TestCase):
             # We're out of queued bits.
             pass
 
-        self.assertEqual(messages, [u'delete:notes.note.1', u'delete:notes.note.2', u'delete:notes.note.3'])
+        self.assertEqual(messages, [u'delete:tests.note.1', u'delete:tests.note.2', u'delete:tests.note.3'])
 
     def test_complex(self):
         self.assertEqual(len(self.queue), 0)
@@ -166,7 +166,7 @@ class QueuedSearchIndexTestCase(TestCase):
             # We're out of queued bits.
             pass
 
-        self.assertEqual(messages, [u'update:notes.note.1', u'update:notes.note.2', u'delete:notes.note.1', u'update:notes.note.3', u'update:notes.note.3', u'delete:notes.note.3'])
+        self.assertEqual(messages, [u'update:tests.note.1', u'update:tests.note.2', u'delete:tests.note.1', u'update:tests.note.3', u'update:tests.note.3', u'delete:tests.note.3'])
 
 
 class ProcessSearchQueueTestCase(TestCase):
@@ -190,27 +190,27 @@ class ProcessSearchQueueTestCase(TestCase):
     def test_process_mesage(self):
         self.assertEqual(self.psqc.actions, {'update': set([]), 'delete': set([])})
 
-        self.psqc.process_message('update:notes.note.1')
-        self.assertEqual(self.psqc.actions, {'update': set(['notes.note.1']), 'delete': set([])})
+        self.psqc.process_message('update:tests.note.1')
+        self.assertEqual(self.psqc.actions, {'update': set(['tests.note.1']), 'delete': set([])})
 
-        self.psqc.process_message('delete:notes.note.2')
-        self.assertEqual(self.psqc.actions, {'update': set(['notes.note.1']), 'delete': set(['notes.note.2'])})
+        self.psqc.process_message('delete:tests.note.2')
+        self.assertEqual(self.psqc.actions, {'update': set(['tests.note.1']), 'delete': set(['tests.note.2'])})
 
-        self.psqc.process_message('update:notes.note.2')
-        self.assertEqual(self.psqc.actions, {'update': set(['notes.note.1', 'notes.note.2']), 'delete': set([])})
+        self.psqc.process_message('update:tests.note.2')
+        self.assertEqual(self.psqc.actions, {'update': set(['tests.note.1', 'tests.note.2']), 'delete': set([])})
 
-        self.psqc.process_message('delete:notes.note.1')
-        self.assertEqual(self.psqc.actions, {'update': set(['notes.note.2']), 'delete': set(['notes.note.1'])})
+        self.psqc.process_message('delete:tests.note.1')
+        self.assertEqual(self.psqc.actions, {'update': set(['tests.note.2']), 'delete': set(['tests.note.1'])})
 
-        self.psqc.process_message('wtfmate:notes.note.1')
-        self.assertEqual(self.psqc.actions, {'update': set(['notes.note.2']), 'delete': set(['notes.note.1'])})
+        self.psqc.process_message('wtfmate:tests.note.1')
+        self.assertEqual(self.psqc.actions, {'update': set(['tests.note.2']), 'delete': set(['tests.note.1'])})
 
         self.psqc.process_message('just plain wrong')
-        self.assertEqual(self.psqc.actions, {'update': set(['notes.note.2']), 'delete': set(['notes.note.1'])})
+        self.assertEqual(self.psqc.actions, {'update': set(['tests.note.2']), 'delete': set(['tests.note.1'])})
 
     def test_split_obj_identifier(self):
-        self.assertEqual(self.psqc.split_obj_identifier('notes.note.1'), ('notes.note', '1'))
-        self.assertEqual(self.psqc.split_obj_identifier('myproject.notes.note.73'), ('myproject.notes.note', '73'))
+        self.assertEqual(self.psqc.split_obj_identifier('tests.note.1'), ('tests.note', '1'))
+        self.assertEqual(self.psqc.split_obj_identifier('myproject.tests.note.73'), ('myproject.tests.note', '73'))
         self.assertEqual(self.psqc.split_obj_identifier('wtfmate.1'), ('wtfmate', '1'))
         self.assertEqual(self.psqc.split_obj_identifier('wtfmate'), (None, None))
 
@@ -259,29 +259,29 @@ class ProcessSearchQueueTestCase(TestCase):
 
         self.assertEqual(AssertableHandler.stowed_messages, [
             'Starting to process the queue.',
-            u"Processing message 'update:notes.note.1'...",
-            u"Saw 'update' on 'notes.note.1'...",
-            u"Added 'notes.note.1' to the update list.",
-            u"Processing message 'update:notes.note.2'...",
-            u"Saw 'update' on 'notes.note.2'...",
-            u"Added 'notes.note.2' to the update list.",
-            u"Processing message 'delete:notes.note.1'...",
-            u"Saw 'delete' on 'notes.note.1'...",
-            u"Added 'notes.note.1' to the delete list.",
-            u"Processing message 'update:notes.note.3'...",
-            u"Saw 'update' on 'notes.note.3'...",
-            u"Added 'notes.note.3' to the update list.",
-            u"Processing message 'update:notes.note.3'...",
-            u"Saw 'update' on 'notes.note.3'...",
-            u"Added 'notes.note.3' to the update list.",
-            u"Processing message 'delete:notes.note.3'...",
-            u"Saw 'delete' on 'notes.note.3'...",
-            u"Added 'notes.note.3' to the delete list.",
+            u"Processing message 'update:tests.note.1'...",
+            u"Saw 'update' on 'tests.note.1'...",
+            u"Added 'tests.note.1' to the update list.",
+            u"Processing message 'update:tests.note.2'...",
+            u"Saw 'update' on 'tests.note.2'...",
+            u"Added 'tests.note.2' to the update list.",
+            u"Processing message 'delete:tests.note.1'...",
+            u"Saw 'delete' on 'tests.note.1'...",
+            u"Added 'tests.note.1' to the delete list.",
+            u"Processing message 'update:tests.note.3'...",
+            u"Saw 'update' on 'tests.note.3'...",
+            u"Added 'tests.note.3' to the update list.",
+            u"Processing message 'update:tests.note.3'...",
+            u"Saw 'update' on 'tests.note.3'...",
+            u"Added 'tests.note.3' to the update list.",
+            u"Processing message 'delete:tests.note.3'...",
+            u"Saw 'delete' on 'tests.note.3'...",
+            u"Added 'tests.note.3' to the delete list.",
             'Queue consumed.',
-            u'Indexing 1 notes.note.',
+            u'Indexing 1 tests.note.',
             '  indexing 1 - 1 of 1.',
-            u"Updated objects for 'notes.note': 2",
-            u"Deleted objects for 'notes.note': 1, 3",
+            u"Updated objects for 'tests.note': 2",
+            u"Deleted objects for 'tests.note': 1, 3",
             'Processing complete.'
         ])
         self.assertEqual(SearchQuerySet().all().count(), 1)
@@ -298,7 +298,7 @@ class ProcessSearchQueueTestCase(TestCase):
         self.assertEqual(len(self.queue), 1)
 
         # Write a failed message.
-        self.queue.write('update:notes.note.abc')
+        self.queue.write('update:tests.note.abc')
         self.assertEqual(len(self.queue), 2)
 
         self.assertEqual(AssertableHandler.stowed_messages, [])
@@ -324,17 +324,17 @@ class ProcessSearchQueueTestCase(TestCase):
             # We're out of queued bits.
             pass
 
-        self.assertEqual(messages, [u'update:notes.note.1', 'update:notes.note.abc'])
+        self.assertEqual(messages, [u'update:tests.note.1', 'update:tests.note.abc'])
         self.assertEqual(len(self.queue), 0)
 
         self.assertEqual(AssertableHandler.stowed_messages, [
             'Starting to process the queue.',
-            u"Processing message 'update:notes.note.1'...",
-            u"Saw 'update' on 'notes.note.1'...",
-            u"Added 'notes.note.1' to the update list.",
-            "Processing message 'update:notes.note.abc'...",
-            "Saw 'update' on 'notes.note.abc'...",
-            "Added 'notes.note.abc' to the update list.",
+            u"Processing message 'update:tests.note.1'...",
+            u"Saw 'update' on 'tests.note.1'...",
+            u"Added 'tests.note.1' to the update list.",
+            "Processing message 'update:tests.note.abc'...",
+            "Saw 'update' on 'tests.note.abc'...",
+            "Added 'tests.note.abc' to the update list.",
             'Queue consumed.',
             "Exception seen during processing: invalid literal for int() with base 10: 'abc'",
             'Requeuing unprocessed messages.',
@@ -362,7 +362,7 @@ class ProcessSearchQueueTestCase(TestCase):
         note2.delete()
 
         # Write a failed message.
-        self.queue.write('delete:notes.note.abc')
+        self.queue.write('delete:tests.note.abc')
         self.assertEqual(len(self.queue), 4)
 
         AssertableHandler.stowed_messages = []
@@ -390,28 +390,28 @@ class ProcessSearchQueueTestCase(TestCase):
             # We're out of queued bits.
             pass
 
-        self.assertEqual(messages, ['delete:notes.note.abc'])
+        self.assertEqual(messages, ['delete:tests.note.abc'])
         self.assertEqual(len(self.queue), 0)
 
         self.assertEqual(AssertableHandler.stowed_messages, [
             'Starting to process the queue.',
-            u"Processing message 'update:notes.note.2'...",
-            u"Saw 'update' on 'notes.note.2'...",
-            u"Added 'notes.note.2' to the update list.",
-            u"Processing message 'update:notes.note.3'...",
-            u"Saw 'update' on 'notes.note.3'...",
-            u"Added 'notes.note.3' to the update list.",
-            u"Processing message 'delete:notes.note.3'...",
-            u"Saw 'delete' on 'notes.note.3'...",
-            u"Added 'notes.note.3' to the delete list.",
-            "Processing message 'delete:notes.note.abc'...",
-            "Saw 'delete' on 'notes.note.abc'...",
-            "Added 'notes.note.abc' to the delete list.",
+            u"Processing message 'update:tests.note.2'...",
+            u"Saw 'update' on 'tests.note.2'...",
+            u"Added 'tests.note.2' to the update list.",
+            u"Processing message 'update:tests.note.3'...",
+            u"Saw 'update' on 'tests.note.3'...",
+            u"Added 'tests.note.3' to the update list.",
+            u"Processing message 'delete:tests.note.3'...",
+            u"Saw 'delete' on 'tests.note.3'...",
+            u"Added 'tests.note.3' to the delete list.",
+            "Processing message 'delete:tests.note.abc'...",
+            "Saw 'delete' on 'tests.note.abc'...",
+            "Added 'tests.note.abc' to the delete list.",
             'Queue consumed.',
-            u'Indexing 1 notes.note.',
+            u'Indexing 1 tests.note.',
             '  indexing 1 - 1 of 1.',
-            u"Updated objects for 'notes.note': 2",
-            "Exception seen during processing: Provided string 'notes.note.abc' is not a valid identifier.",
+            u"Updated objects for 'tests.note': 2",
+            "Exception seen during processing: Provided string 'tests.note.abc' is not a valid identifier.",
             'Requeuing unprocessed messages.',
             'Requeued 0 updates and 1 deletes.'
         ])

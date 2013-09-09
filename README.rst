@@ -9,7 +9,7 @@ For use with Haystack (http://haystacksearch.org/).
 
 **WARNING!!!**
 
-This project has been updated to be compatible with Haystack 2.0.0-alpha!
+This project has been updated to be compatible with Haystack 2.0.x!
 If you need ``queued_search`` for Haystack 1.2.X, please use the 1.0.4 tag
 or ``pip install queued_search==1.0.4``!
 
@@ -17,7 +17,8 @@ or ``pip install queued_search==1.0.4``!
 Requirements
 ============
 
-* Django 1.2+
+* Python 2.6+ or Python 3.3+
+* Django 1.5+
 * Haystack 2.0.X (http://github.com/toastdriven/django-haystack)
 * Queues (http://code.google.com/p/queues/)
 
