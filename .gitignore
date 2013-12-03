@@ -5,3 +5,4 @@ tests/haystack
 tests/queues
 env
 dist
+build
